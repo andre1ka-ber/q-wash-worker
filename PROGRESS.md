@@ -311,6 +311,27 @@ See `PLAN.md` for the full plan and build order.
   knowing if a future session wonders why the seed's `ready`/`canceled`
   rows don't look freshly seeded).
 
-  **Still open**: `q-wash-worker` has no `.git` of its own yet (matches
-  its platform-`CLAUDE.md`-documented status, same as `q-wash-display`) —
-  nothing to commit until that's set up.
+- 2026-08-26 (later still, same day) — `git init`'d this app (`main`
+  branch, matching every sibling web app) and committed everything —
+  closes the "no `.git` yet" gap from the entry above.
+
+  Then, prompted by "is this fully implemented?", **found and fixed one
+  more real gap**: `box.is_open` (the `Box` entity's own open/closed
+  flag, set via `q-wash-cabinet`'s Боксы tab) was on the `LiveBox` type
+  but never read anywhere in `BoxCard.tsx` — an administratively closed
+  box rendered identically to an idle open one ("Свободен"), with nothing
+  telling a technician not to use it. Fixed `badgeFor()` to check
+  `box.is_open` (closed → `bad`/"Закрыт", same `StatusPill` convention
+  `q-wash-cabinet`'s own `BoxesPage.tsx` already uses) — a currently-busy
+  box still shows its busy/paused badge first, since that's the more
+  urgent signal for whoever's standing at it; closed only wins over the
+  generic idle state. Verified live: closed Box 3 via the real API
+  (logged in as `staff`), confirmed the worker screen showed "Закрыт" in
+  red, reopened it afterward to leave demo data clean. Deliberately left
+  the "Начать мойку" action itself untouched for a closed box with a
+  `next` booking (only reachable if a box gets closed after being booked
+  while open, since `availability` already excludes closed boxes from new
+  slots) — the badge now tells the technician the truth, and the backend
+  stays the authority on what's actually allowed; guessing at a hard
+  client-side block for an edge case this rare isn't worth the added
+  complexity.

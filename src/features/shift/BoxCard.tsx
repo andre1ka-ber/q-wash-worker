@@ -31,9 +31,18 @@ interface BadgeInfo {
   label: string;
 }
 
-function badgeFor(current: LiveBoxBooking | undefined): BadgeInfo {
-  if (!current) return { kind: 'mute', label: 'Свободен' };
-  return current.paused_at ? { kind: 'warn', label: 'Пауза' } : { kind: 'ok', label: 'В работе' };
+// A box mid-wash when it gets administratively closed (q-wash-cabinet's
+// Боксы tab) still needs its busy state shown first — that's the more
+// urgent signal for whoever's standing at it. Otherwise, closed (same
+// StatusPill convention BoxesPage.tsx already uses: bad/"Закрыт") beats
+// the generic "Свободен", since an idle closed box would otherwise look
+// identical to an idle open one and invite a walk-in nobody approved.
+function badgeFor(box: LiveBox): BadgeInfo {
+  if (box.current) {
+    return box.current.paused_at ? { kind: 'warn', label: 'Пауза' } : { kind: 'ok', label: 'В работе' };
+  }
+  if (!box.is_open) return { kind: 'bad', label: 'Закрыт' };
+  return { kind: 'mute', label: 'Свободен' };
 }
 
 export interface BoxCardProps {
@@ -49,7 +58,7 @@ export interface BoxCardProps {
 export function BoxCard({ box, now, startPendingId, actionPendingId, onStart, onPauseToggle, onFinish }: BoxCardProps) {
   const current = box.current;
   const next = box.next;
-  const badge = badgeFor(current);
+  const badge = badgeFor(box);
   const progressPct = current ? Math.min(100, (elapsedMs(current, now) / durationMs(current)) * 100) : 0;
 
   return (
