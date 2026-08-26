@@ -1,0 +1,107 @@
+import { authStore, useAuth, color, font, radius, StatusPill } from 'q-wash-shared';
+import { useClock, formatClock, formatDayLabel } from '../useClock';
+import { useMyWashingPoint } from '../useMyWashingPoint';
+
+export interface HeaderProps {
+  completedCount: number;
+}
+
+export function Header({ completedCount }: HeaderProps) {
+  const { user } = useAuth();
+  const now = useClock();
+  const masterName = user?.name ?? 'Мастер';
+  const pointQuery = useMyWashingPoint();
+  const pointName = pointQuery.data?.name ?? '…';
+  const pointAddress = pointQuery.data?.address ?? '';
+
+  return (
+    <div
+      style={{
+        padding: '20px 32px',
+        borderBottom: `1px solid ${color.borderAlt}`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 20,
+        flexWrap: 'wrap',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
+        <div
+          style={{
+            width: 40,
+            height: 40,
+            flex: '0 0 auto',
+            borderRadius: 11,
+            border: '1px solid rgba(217,178,106,.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontFamily: font.display,
+            color: color.gold,
+            fontSize: 18,
+          }}
+        >
+          М
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <div
+            style={{
+              fontFamily: font.display,
+              color: color.textPrimary,
+              fontSize: 18,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {pointName}
+          </div>
+          <div style={{ color: color.textFaint, fontSize: 12 }}>{pointAddress}</div>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 20, flex: '0 0 auto' }}>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ color: color.textPrimaryAlt, fontSize: 14, fontWeight: 600 }}>{masterName}</div>
+          <div style={{ color: color.textFaint, fontSize: 12, textTransform: 'capitalize' }}>
+            {formatDayLabel(now)}
+          </div>
+        </div>
+
+        <div
+          style={{
+            fontFamily: font.display,
+            color: color.textPrimary,
+            fontSize: 20,
+            minWidth: 92,
+            textAlign: 'center',
+          }}
+        >
+          {formatClock(now)}
+        </div>
+
+        <StatusPill kind="ok">Помыто сегодня: {completedCount}</StatusPill>
+
+        <div
+          onClick={() => void authStore.logout()}
+          title="Выйти"
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: radius.sm,
+            border: `1px solid ${color.borderStrong}`,
+            color: color.textMuted,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            fontSize: 15,
+          }}
+        >
+          ⎋
+        </div>
+      </div>
+    </div>
+  );
+}
