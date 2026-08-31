@@ -335,3 +335,32 @@ See `PLAN.md` for the full plan and build order.
   stays the authority on what's actually allowed; guessing at a hard
   client-side block for an edge case this rare isn't worth the added
   complexity.
+- 2026-08-31 — Added test infrastructure (this app had none). Vitest 4 +
+  React Testing Library 16 + jsdom, `npm test` → `vitest run`. Two new
+  files: `src/features/shift/BoxCard.test.tsx` (10 cases: `badgeFor`'s
+  four states rendered through `<BoxCard>` rather than exported/tested in
+  isolation — asserts on the actual `StatusPill` text a technician would
+  read, including the "busy beats closed" priority fixed above and the
+  next-booking `startPendingId` disabled state) and
+  `src/shared/useClock.test.ts` (`formatClock`/`formatDayLabel` against
+  fixed UTC instants, confirming the Asia/Dushanbe conversion — including
+  a late-UTC instant that rolls to the next Dushanbe day). `formatElapsed`/
+  `elapsedMs`/`durationMs` deliberately not unit-tested in isolation
+  (module-private, no `export`) — covered instead through the rendered
+  elapsed-time text in the `BoxCard` tests, consistent with not touching
+  the component's export surface for the sake of testability.
+
+  One real gap found and fixed along the way: RTL doesn't auto-cleanup
+  between tests under Vitest unless something calls `cleanup()` — without
+  it, multiple tests' rendered trees stack up in the same jsdom document
+  and later `getByText` assertions throw "multiple elements found" for
+  any text (like the empty-state string) that repeats across tests. Fixed
+  via an explicit `afterEach(cleanup)` in a new `src/vitest-setup.ts`
+  (kept under `src/`, not repo root, so `tsconfig.app.json`'s `include:
+  ["src"]` picks it up and `@testing-library/jest-dom`'s `expect`
+  matcher-type augmentation is visible to `tsc -b` in the test files that
+  use it — a root-level setup file compiled fine at runtime but failed
+  typecheck with "Property 'toBeInTheDocument' does not exist").
+
+  Verified: `npm test` (10/10 pass), `npm run lint` (oxlint, clean),
+  `npx tsc -b` (clean).
