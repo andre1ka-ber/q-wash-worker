@@ -337,14 +337,17 @@ See `PLAN.md` for the full plan and build order.
   complexity.
 - 2026-08-31 — Added test infrastructure (this app had none). Vitest 4 +
   React Testing Library 16 + jsdom, `npm test` → `vitest run`. Two new
-  files: `src/features/shift/BoxCard.test.tsx` (10 cases: `badgeFor`'s
+  files: `src/features/shift/BoxCard.test.tsx` (7 cases: `badgeFor`'s
   four states rendered through `<BoxCard>` rather than exported/tested in
   isolation — asserts on the actual `StatusPill` text a technician would
   read, including the "busy beats closed" priority fixed above and the
   next-booking `startPendingId` disabled state) and
-  `src/shared/useClock.test.ts` (`formatClock`/`formatDayLabel` against
-  fixed UTC instants, confirming the Asia/Dushanbe conversion — including
-  a late-UTC instant that rolls to the next Dushanbe day). `formatElapsed`/
+  `src/shared/useClock.test.ts` (3 cases: `formatClock`/`formatDayLabel`
+  against fixed UTC instants, confirming the Asia/Dushanbe conversion —
+  including a late-UTC instant that rolls to the next Dushanbe day; 10
+  cases total across both files — this entry originally miscounted all 10
+  as belonging to `BoxCard.test.tsx` alone, corrected 2026-09-02).
+  `formatElapsed`/
   `elapsedMs`/`durationMs` deliberately not unit-tested in isolation
   (module-private, no `export`) — covered instead through the rendered
   elapsed-time text in the `BoxCard` tests, consistent with not touching

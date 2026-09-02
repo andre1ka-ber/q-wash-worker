@@ -79,20 +79,31 @@ broadened `PATCH /queue/{id}/cancel` RBAC in the same doc.
 q-wash-worker/
   PLAN.md
   PROGRESS.md
-  package.json          depends on q-wash-shared via file:../q-wash-shared
+  package.json           depends on q-wash-shared via file:../q-wash-shared
   vite.config.ts
+  vitest.config.ts
   src/
     main.tsx
     App.tsx               router root, auth gate
+    vitest-setup.ts        RTL afterEach(cleanup); kept under src/ (not repo
+                           root) so tsconfig.app.json's include: ["src"]
+                           picks it up for tsc -b
     features/
       auth/                 login screen
       shift/                 the one real screen: box cards + today's
                              queue table, all the pause/resume/start/
-                             finish/no-show actions
+                             finish/no-show actions; BoxCard.test.tsx
     shared/
       layout/                Header shell (clock, completed-count) specific
                              to this app
+      useClock.ts             1s Asia/Dushanbe clock/date ticker; useClock.test.ts
+      useMyWashingPoint.ts     resolves the logged-in worker's own point
+                              (GET /washing-points/{id}, public route)
 ```
+
+(Updated 2026-09-02 to match the actual `src/` layout as built — the
+original version above, written before Phase C, didn't yet have
+`useClock.ts`/`useMyWashingPoint.ts` split out or any test files.)
 
 - **Routing**: `react-router`, essentially a single-screen app behind
   auth — no nav beyond login/logout.
