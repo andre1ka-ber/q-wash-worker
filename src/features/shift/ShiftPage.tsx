@@ -2,12 +2,15 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   color,
+  font,
+  radius,
   DataTable,
   DataTableHeaderRow,
   DataTableRow,
   GhostButton,
   StatusPill,
   ApiError,
+  useIsMobile,
   getBoxesLive,
   listQueueByWashingPoint,
   updateBookingStatus,
@@ -17,6 +20,7 @@ import {
   type StatusPillKind,
   type BoardItem,
   type BoardItemStatus,
+  type LiveBox,
   type LiveBoxBooking,
 } from 'q-wash-shared';
 import { Header } from '../../shared/layout/Header';
@@ -48,10 +52,84 @@ const timeFormatter = new Intl.DateTimeFormat('ru-RU', {
   timeZone: 'Asia/Dushanbe',
 });
 
+// Mobile box-switcher's status dot. Closed boxes read as grey too — the
+// same "busy beats closed" priority BoxCard.tsx's own badge uses, the dot
+// just isn't granular enough to show "closed" on its own; the card below
+// it (BoxCard's StatusPill) carries that detail once selected.
+function dotColor(box: LiveBox): string {
+  if (box.current) return box.current.paused_at ? color.warn : color.ok;
+  return color.textDim;
+}
+
+interface QueueRowCardProps {
+  row: BoardItem;
+  canStart: boolean;
+  startPending: boolean;
+  confirming: boolean;
+  cancelPending: boolean;
+  onStart: () => void;
+  onCancel: () => void;
+}
+
+function QueueRowCard({ row, canStart, startPending, confirming, cancelPending, onStart, onCancel }: QueueRowCardProps) {
+  const pill = queuePill(row.status);
+  return (
+    <div
+      style={{
+        padding: '14px 16px',
+        borderRadius: radius.xxl,
+        background: color.panel,
+        border: `1px solid ${color.borderAlt}`,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 10,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+        <div style={{ minWidth: 0 }}>
+          <div
+            style={{
+              color: color.textPrimaryAlt,
+              fontSize: 14,
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {identity(row)}
+          </div>
+          <div style={{ color: color.textFaint, fontSize: 12 }}>
+            Бокс {row.box_number} · {timeFormatter.format(new Date(row.scheduled_start_at))}
+          </div>
+        </div>
+        <StatusPill kind={pill.kind}>{pill.label}</StatusPill>
+      </div>
+      <div style={{ display: 'flex', gap: 8 }}>
+        {canStart && (
+          <GhostButton type="button" disabled={startPending} onClick={onStart} style={{ flex: 1, fontSize: 12 }}>
+            {startPending ? 'Запуск…' : 'Начать'}
+          </GhostButton>
+        )}
+        <GhostButton
+          type="button"
+          disabled={cancelPending}
+          onClick={onCancel}
+          style={{ flex: canStart ? 1 : undefined, fontSize: 12, color: color.bad }}
+        >
+          {confirming ? 'Точно снять?' : 'Снять'}
+        </GhostButton>
+      </div>
+    </div>
+  );
+}
+
 export function ShiftPage() {
   const washingPointId = useMyWashingPointId();
   const queryClient = useQueryClient();
   const now = useClock();
+  const isMobile = useIsMobile();
+  const [selectedBoxNumber, setSelectedBoxNumber] = useState<number | null>(null);
 
   // No completed-today count exists anywhere in the API — boxes/live and
   // the today's-queue board both deliberately exclude status=ready rows
@@ -126,6 +204,8 @@ export function ShiftPage() {
   }
 
   const boxes = boxesQuery.data?.items ?? [];
+  const activeBoxNumber = selectedBoxNumber ?? boxes[0]?.number ?? null;
+  const activeBox = boxes.find((b) => b.number === activeBoxNumber) ?? null;
   const queueRows = (queueQuery.data?.items ?? [])
     .filter((row) => row.status !== 'washing') // already shown on its box's card
     .sort((a, b) => a.scheduled_start_at.localeCompare(b.scheduled_start_at));
@@ -186,6 +266,62 @@ export function ShiftPage() {
               <div style={{ color: color.textPrimary, fontSize: 19, fontWeight: 700, marginBottom: 14 }}>Боксы</div>
               {!hadData ? (
                 <div style={{ color: color.textFaint, fontSize: 13 }}>Загрузка…</div>
+              ) : isMobile ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {boxes.length > 1 && (
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: 6,
+                        background: color.panel,
+                        border: `1px solid ${color.border}`,
+                        padding: 4,
+                        borderRadius: radius.xxl,
+                      }}
+                    >
+                      {boxes.map((box) => {
+                        const active = box.number === activeBoxNumber;
+                        return (
+                          <button
+                            key={box.number}
+                            type="button"
+                            onClick={() => setSelectedBoxNumber(box.number)}
+                            style={{
+                              flex: 1,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              gap: 8,
+                              padding: '11px 0',
+                              borderRadius: radius.lg,
+                              border: 'none',
+                              cursor: 'pointer',
+                              fontSize: 14,
+                              fontWeight: 600,
+                              fontFamily: font.body,
+                              background: active ? color.panelAlt : 'transparent',
+                              color: active ? color.textPrimary : color.textFaint,
+                            }}
+                          >
+                            <span style={{ width: 8, height: 8, borderRadius: '50%', background: dotColor(box) }} />
+                            Бокс {box.number}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {activeBox && (
+                    <BoxCard
+                      box={activeBox}
+                      now={now.getTime()}
+                      startPendingId={startPendingId}
+                      actionPendingId={actionPendingId}
+                      onStart={(booking) => startMutation.mutate(booking)}
+                      onPauseToggle={(booking) => pauseMutation.mutate(booking)}
+                      onFinish={(booking) => finishMutation.mutate(booking)}
+                    />
+                  )}
+                </div>
               ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
                   {boxes.map((box) => (
@@ -208,6 +344,28 @@ export function ShiftPage() {
               <div style={{ color: color.textPrimary, fontSize: 19, fontWeight: 700, marginBottom: 14 }}>
                 Очередь на сегодня
               </div>
+              {isMobile ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {!hadData ? (
+                    <div style={{ color: color.textFaint, fontSize: 13 }}>Загрузка…</div>
+                  ) : queueRows.length === 0 ? (
+                    <div style={{ color: color.textFaint, fontSize: 13 }}>На сегодня записей больше нет</div>
+                  ) : (
+                    queueRows.map((row) => (
+                      <QueueRowCard
+                        key={row.id}
+                        row={row}
+                        canStart={nextByBoxNumber.get(row.box_number) === row.id}
+                        startPending={startPendingId === row.id}
+                        confirming={confirmingCancelId === row.id}
+                        cancelPending={cancelMutation.isPending && cancelMutation.variables === row.id}
+                        onStart={() => startMutation.mutate({ id: row.id, status: row.status })}
+                        onCancel={() => requestCancel(row.id)}
+                      />
+                    ))
+                  )}
+                </div>
+              ) : (
               <DataTable>
                 <DataTableHeaderRow
                   gridTemplateColumns={QUEUE_COLUMNS}
@@ -279,6 +437,7 @@ export function ShiftPage() {
                   })
                 )}
               </DataTable>
+              )}
             </div>
           </>
         )}

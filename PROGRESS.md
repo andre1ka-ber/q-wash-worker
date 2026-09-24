@@ -377,3 +377,36 @@ See `PLAN.md` for the full plan and build order.
   Google Fonts `<link>`s + an inline-SVG favicon (same logo mark) to
   `index.html` — self-hosted Manrope/Prata dropped in favor of the CDN.
   `npm run build` and `npm test` both clean.
+- 2026-09-24 — **Mobile view** (step 4 of the platform's cross-app
+  `plan.md`, one screen wide — `ShiftPage.tsx` — driven entirely off the
+  same real `boxes-live`/`queue` queries and mutations Phase C/D already
+  wired, no new fetches). Below the new `useIsMobile(768)` breakpoint
+  (`q-wash-shared`): the desktop's simultaneous all-boxes grid becomes a
+  box-switcher — a segmented pill row (one per box, a status dot mirroring
+  `BoxCard`'s own busy/paused/free-or-closed priority) driving new local
+  `selectedBoxNumber` state, defaulting to the first box — rendering
+  exactly one `BoxCard` at a time. `BoxCard.tsx` itself is untouched, only
+  ever handed a different single box. The "Очередь на сегодня" `DataTable`
+  gets a mobile-only `QueueRowCard` stack built from the exact same
+  `queueRows`/`queuePill`/`identity` derived values the desktop table
+  already computes — no recomputation, no new state beyond
+  `selectedBoxNumber`. Desktop branch is untouched code, not rewritten,
+  each spot as an `isMobile ? … : <original JSX>` ternary. `Header.tsx`
+  needed no change (`flexWrap` already handled narrow widths).
+
+  Also fixed a cross-app dual-React-copy gap this app shared with
+  `q-wash-admin`/`q-wash-cabinet`: `vitest.config.ts` was missing the
+  `resolve.dedupe: ['react','react-dom']` `vite.config.ts` already carries
+  (surfaces as an "Invalid hook call" the moment a component calls a hook
+  from `q-wash-shared`, like `useIsMobile`) — added it, plus a
+  `window.matchMedia` jsdom polyfill in `src/vitest-setup.ts` defaulting to
+  non-matching/desktop, same shape as the other two apps' fix.
+
+  No new tests: this app's existing suite (`BoxCard.test.tsx`,
+  `useClock.test.ts`) has no responsive-viewport coverage to begin with,
+  same bar `q-wash-cabinet`'s mobile pass held itself to — all 10 existing
+  tests still run under the jsdom-default desktop branch and stayed green.
+
+  Verified: `npx tsc -b`, `npx oxlint`, `npm test` (10/10), `npm run build`
+  all clean. No live browser click-through this pass (out of scope for
+  this step — see the coordinator's root `plan.md`/`progress.md`).
