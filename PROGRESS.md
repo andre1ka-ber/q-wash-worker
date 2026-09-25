@@ -423,3 +423,11 @@ See `PLAN.md` for the full plan and build order.
   (see `q-wash-shared`'s `PROGRESS.md`): dark bordered square instead of
   gold, gray/gray/gold bars instead of dark-on-gold. Same change applied
   identically in `q-wash-admin`, `q-wash-cabinet`, `q-wash-display`.
+
+- 2026-09-25 (same day) — Both logout call sites (`Header.tsx`'s icon
+  button and `App.tsx`'s `UnsupportedAccount` screen) now go through the
+  new `q-wash-shared` `ConfirmDialog` ("Выйти из аккаунта?") instead of
+  calling `authStore.logout()` directly. `npx tsc --noEmit`, `npx vitest
+  run` (10/10) clean. Not separately browser-tested in this app (identical
+  pattern verified live in `q-wash-admin`/`q-wash-cabinet` — see their own
+  `PROGRESS.md`).
