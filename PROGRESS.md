@@ -410,3 +410,10 @@ See `PLAN.md` for the full plan and build order.
   Verified: `npx tsc -b`, `npx oxlint`, `npm test` (10/10), `npm run build`
   all clean. No live browser click-through this pass (out of scope for
   this step — see the coordinator's root `plan.md`/`progress.md`).
+
+- 2026-09-25 (same day) — Restyled scrollbars (`index.css`): thin (10px),
+  transparent track, rounded dark thumb (`#33322C`, `#4E4E47` on hover)
+  instead of the browser default, applied globally (`*`). Same change made
+  identically across all four web apps (`q-wash-admin`, `q-wash-cabinet`,
+  `q-wash-worker`, `q-wash-display`) for a consistent look. `npx vitest
+  run` still 10/10 (CSS-only change).
