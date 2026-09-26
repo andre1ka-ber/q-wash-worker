@@ -431,3 +431,5 @@ See `PLAN.md` for the full plan and build order.
   run` (10/10) clean. Not separately browser-tested in this app (identical
   pattern verified live in `q-wash-admin`/`q-wash-cabinet` — see their own
   `PROGRESS.md`).
+
+- 2026-09-26 — Test review: added `ShiftPage.test.tsx` (queue table, queue→waiting→washing chaining, only-next-can-start, finish/pause/resume, two-step cancel, API/generic errors, mobile switcher) and `LoginPage.test.tsx` — 23 tests total.
