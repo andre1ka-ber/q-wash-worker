@@ -433,3 +433,13 @@ See `PLAN.md` for the full plan and build order.
   `PROGRESS.md`).
 
 - 2026-09-26 — Test review: added `ShiftPage.test.tsx` (queue table, queue→waiting→washing chaining, only-next-can-start, finish/pause/resume, two-step cancel, API/generic errors, mobile switcher) and `LoginPage.test.tsx` — 23 tests total.
+
+- 2026-09-28 — **Sentry error monitoring** (see platform-level `plan-sentry.md`).
+  Same wiring as `q-wash-admin`/`q-wash-cabinet`: `src/main.tsx` calls
+  `initSentry` (from `q-wash-shared`) only when `import.meta.env.PROD`,
+  `<App />` wrapped in its `ErrorBoundary`. `VITE_SENTRY_DSN` added to
+  `vite-env.d.ts`'s `ImportMetaEnv`. No `.env.example` in this app (same as
+  `q-wash-cabinet`) — `VITE_SENTRY_DSN` gets set the same way
+  `VITE_API_BASE_URL` already is for deploy, whatever that is; didn't touch
+  CI config. No DSN yet — no-op until one exists. `npx tsc --noEmit`, `npx
+  vite build`, `npx vitest run` (28/28) all clean.
