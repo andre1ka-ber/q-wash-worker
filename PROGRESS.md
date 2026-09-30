@@ -443,3 +443,18 @@ See `PLAN.md` for the full plan and build order.
   `VITE_API_BASE_URL` already is for deploy, whatever that is; didn't touch
   CI config. No DSN yet — no-op until one exists. `npx tsc --noEmit`, `npx
   vite build`, `npx vitest run` (28/28) all clean.
+
+- 2026-09-30 — **Installable PWA**: new dependency `vite-plugin-pwa`
+  (`npm audit fix` cleared the one unrelated transitive `undici`
+  advisory). Real icons (192/512 `any`, 512 `maskable`, 180 apple-touch)
+  generated pixel-faithful to the app's existing favicon mark, in new
+  `public/`. `vite.config.ts`: `VitePWA({ registerType: 'autoUpdate',
+  manifest: {...} })` — no `runtimeCaching` entries, confirmed by reading
+  the built `dist/sw.js` (exactly one `registerRoute` call, Workbox's own
+  navigation-shell fallback, nothing touching `/api/*`). This app's live
+  queue data must never be served stale — installable is the whole scope,
+  not offline. `index.html` gained an `apple-touch-icon` link + a
+  `theme-color` meta. Verified via `vite build && vite preview` +
+  Playwright: manifest fetches valid with the right icons/`lang`, service
+  worker registers, no console errors. `npx tsc --noEmit` and `npx
+  vitest run` (28/28) unaffected.
