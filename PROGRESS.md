@@ -469,3 +469,9 @@ See `PLAN.md` for the full plan and build order.
   `GET/POST/DELETE /queue/{id}/photos`; upload only works while the booking is
   washing. Not in the design/API so left out: "Не приехал" queue status.
   `tsc -b`, `oxlint`, `vitest run` (34/34) clean.
+- 2026-10-26 — PWA updates: the service worker is now registered from
+  `main.tsx` via `startPwaUpdates` (q-wash-shared) instead of the plugin's
+  injected script (`injectRegister: false`, `skipWaiting`/`clientsClaim` set
+  explicitly). The page reloads when a new version takes over, and re-checks
+  hourly and on return to the app — previously an open tab or a resumed phone
+  app kept running the old build until a hard refresh. `vite build` verified.
