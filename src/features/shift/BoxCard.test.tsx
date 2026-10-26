@@ -154,6 +154,7 @@ describe('BoxCard badge + elapsed rendering', () => {
           service_name: 'Комплекс',
           price_option_name: 'Седан',
           price_cents: 0,
+          items: [],
         },
       ],
     ]);
