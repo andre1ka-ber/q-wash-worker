@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   color,
   font,
-  radius,
   DataTable,
   DataTableHeaderRow,
   DataTableRow,
@@ -13,6 +12,7 @@ import {
   useIsMobile,
   getBoxesLive,
   listQueueByWashingPoint,
+  listQueueDay,
   updateBookingStatus,
   pauseBooking,
   resumeBooking,
@@ -22,6 +22,7 @@ import {
   type BoardItemStatus,
   type LiveBox,
   type LiveBoxBooking,
+  type QueueDayItem,
 } from 'q-wash-shared';
 import { Header } from '../../shared/layout/Header';
 import { useClock } from '../../shared/useClock';
@@ -52,6 +53,17 @@ const timeFormatter = new Intl.DateTimeFormat('ru-RU', {
   timeZone: 'Asia/Dushanbe',
 });
 
+const dayFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Dushanbe' });
+
+function recordsLabel(n: number): string {
+  const mod100 = n % 100;
+  const mod10 = n % 10;
+  if (mod100 >= 11 && mod100 <= 14) return `${n} записей`;
+  if (mod10 === 1) return `${n} запись`;
+  if (mod10 >= 2 && mod10 <= 4) return `${n} записи`;
+  return `${n} записей`;
+}
+
 // Mobile box-switcher's status dot. Closed boxes read as grey too — the
 // same "busy beats closed" priority BoxCard.tsx's own badge uses, the dot
 // just isn't granular enough to show "closed" on its own; the card below
@@ -63,6 +75,7 @@ function dotColor(box: LiveBox): string {
 
 interface QueueRowCardProps {
   row: BoardItem;
+  detail?: QueueDayItem;
   canStart: boolean;
   startPending: boolean;
   confirming: boolean;
@@ -71,13 +84,19 @@ interface QueueRowCardProps {
   onCancel: () => void;
 }
 
-function QueueRowCard({ row, canStart, startPending, confirming, cancelPending, onStart, onCancel }: QueueRowCardProps) {
-  const pill = queuePill(row.status);
+// The mobile queue speaks the design's short labels ("Ждёт"/"Подтв.").
+function mobileQueuePill(status: BoardItemStatus): { kind: StatusPillKind; label: string } {
+  return status === 'waiting' ? { kind: 'warn', label: 'Ждёт' } : { kind: 'mute', label: 'Подтв.' };
+}
+
+function QueueRowCard({ row, detail, canStart, startPending, confirming, cancelPending, onStart, onCancel }: QueueRowCardProps) {
+  const pill = mobileQueuePill(row.status);
+  const subtitle = [timeFormatter.format(new Date(row.scheduled_start_at)), detail?.service_name].filter(Boolean).join(' · ');
   return (
     <div
       style={{
-        padding: '14px 16px',
-        borderRadius: radius.xxl,
+        padding: '12px 14px',
+        borderRadius: 16,
         background: color.panel,
         border: `1px solid ${color.borderAlt}`,
         display: 'flex',
@@ -85,12 +104,24 @@ function QueueRowCard({ row, canStart, startPending, confirming, cancelPending, 
         gap: 10,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-        <div style={{ minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div
+          style={{
+            width: 52,
+            flex: '0 0 52px',
+            color: color.gold,
+            fontSize: 17,
+            fontWeight: 700,
+            letterSpacing: '-.03em',
+          }}
+        >
+          {detail?.ticket ?? `Б${row.box_number}`}
+        </div>
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
           <div
             style={{
               color: color.textPrimaryAlt,
-              fontSize: 14,
+              fontSize: 13.5,
               fontWeight: 600,
               whiteSpace: 'nowrap',
               overflow: 'hidden',
@@ -99,8 +130,16 @@ function QueueRowCard({ row, canStart, startPending, confirming, cancelPending, 
           >
             {identity(row)}
           </div>
-          <div style={{ color: color.textFaint, fontSize: 12 }}>
-            Бокс {row.box_number} · {timeFormatter.format(new Date(row.scheduled_start_at))}
+          <div
+            style={{
+              color: color.textTertiary,
+              fontSize: 11.5,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            Бокс {row.box_number} · {subtitle}
           </div>
         </div>
         <StatusPill kind={pill.kind}>{pill.label}</StatusPill>
@@ -151,9 +190,20 @@ export function ShiftPage() {
     refetchInterval: REFETCH_INTERVAL_MS,
   });
 
+  // Ticket/plate/client/price class aren't on the live board — only the day
+  // list has them. Enrichment only: a failure here must not break the screen.
+  const today = dayFormatter.format(now);
+  const dayQuery = useQuery({
+    queryKey: ['worker', 'queue-day', washingPointId, today],
+    queryFn: () => listQueueDay(washingPointId, today),
+    refetchInterval: REFETCH_INTERVAL_MS,
+  });
+  const details = new Map<string, QueueDayItem>((dayQuery.data?.items ?? []).map((item) => [item.id, item]));
+
   function invalidateBoard() {
     void queryClient.invalidateQueries({ queryKey: ['worker', 'boxes-live', washingPointId] });
     void queryClient.invalidateQueries({ queryKey: ['worker', 'queue', washingPointId] });
+    void queryClient.invalidateQueries({ queryKey: ['worker', 'queue-day', washingPointId] });
   }
 
   // The mock's one-click "Начать мойку" hides a real two-step backend
@@ -226,7 +276,15 @@ export function ShiftPage() {
   return (
     <div style={{ minHeight: '100vh', background: color.surface, display: 'flex', flexDirection: 'column' }}>
       <Header completedCount={completedCount} />
-      <div style={{ flex: 1, padding: '28px 32px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div
+        style={{
+          flex: 1,
+          padding: isMobile ? '18px 18px 30px' : '28px 32px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: isMobile ? 16 : 20,
+        }}
+      >
         {isReconnecting && (
           <div
             style={{
@@ -263,7 +321,9 @@ export function ShiftPage() {
         ) : (
           <>
             <div>
-              <div style={{ color: color.textPrimary, fontSize: 19, fontWeight: 700, marginBottom: 14 }}>Боксы</div>
+              {!isMobile && (
+                <div style={{ color: color.textPrimary, fontSize: 19, fontWeight: 700, marginBottom: 14 }}>Боксы</div>
+              )}
               {!hadData ? (
                 <div style={{ color: color.textFaint, fontSize: 13 }}>Загрузка…</div>
               ) : isMobile ? (
@@ -274,9 +334,9 @@ export function ShiftPage() {
                         display: 'flex',
                         gap: 6,
                         background: color.panel,
-                        border: `1px solid ${color.border}`,
+                        border: `1px solid ${color.borderAlt}`,
                         padding: 4,
-                        borderRadius: radius.xxl,
+                        borderRadius: 15,
                       }}
                     >
                       {boxes.map((box) => {
@@ -293,13 +353,13 @@ export function ShiftPage() {
                               justifyContent: 'center',
                               gap: 8,
                               padding: '11px 0',
-                              borderRadius: radius.lg,
+                              borderRadius: 11,
                               border: 'none',
                               cursor: 'pointer',
                               fontSize: 14,
                               fontWeight: 600,
                               fontFamily: font.body,
-                              background: active ? color.panelAlt : 'transparent',
+                              background: active ? color.borderStrong : 'transparent',
                               color: active ? color.textPrimary : color.textFaint,
                             }}
                           >
@@ -312,6 +372,8 @@ export function ShiftPage() {
                   )}
                   {activeBox && (
                     <BoxCard
+                      mobile
+                      details={details}
                       box={activeBox}
                       now={now.getTime()}
                       startPendingId={startPendingId}
@@ -341,8 +403,20 @@ export function ShiftPage() {
             </div>
 
             <div>
-              <div style={{ color: color.textPrimary, fontSize: 19, fontWeight: 700, marginBottom: 14 }}>
-                Очередь на сегодня
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 14,
+                }}
+              >
+                <div style={{ color: color.textPrimary, fontSize: isMobile ? 15 : 19, fontWeight: isMobile ? 600 : 700 }}>
+                  Очередь на сегодня
+                </div>
+                {isMobile && hadData && (
+                  <div style={{ color: color.textTertiary, fontSize: 12 }}>{recordsLabel(queueRows.length)}</div>
+                )}
               </div>
               {isMobile ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -355,6 +429,7 @@ export function ShiftPage() {
                       <QueueRowCard
                         key={row.id}
                         row={row}
+                        detail={details.get(row.id)}
                         canStart={nextByBoxNumber.get(row.box_number) === row.id}
                         startPending={startPendingId === row.id}
                         confirming={confirmingCancelId === row.id}

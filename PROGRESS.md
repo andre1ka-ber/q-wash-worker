@@ -458,3 +458,14 @@ See `PLAN.md` for the full plan and build order.
   Playwright: manifest fetches valid with the right icons/`lang`, service
   worker registers, no console errors. `npx tsc --noEmit` and `npx
   vitest run` (28/28) unaffected.
+- 2026-10-26 — Mobile restyle from "Car Wash Web Apps Mobile" (design
+  imported again) + wash photos. Mobile header ("Смена · name", point · date,
+  "вымыто" counter, small logout), box tabs, a mobile `BoxCard` (big ticket,
+  plate · client, service / slot-class block, progress in minutes, photo strip,
+  Пауза/Завершить) and design-style queue rows ("Ждёт"/"Подтв." pills).
+  Ticket/plate/client/class come from `listQueueDay` (boxes/live has none);
+  it is enrichment only, so a failure there leaves those fields blank. New
+  `PhotoStrip` (also shown on the desktop card) wired to the new
+  `GET/POST/DELETE /queue/{id}/photos`; upload only works while the booking is
+  washing. Not in the design/API so left out: "Не приехал" queue status.
+  `tsc -b`, `oxlint`, `vitest run` (34/34) clean.
