@@ -148,11 +148,11 @@ describe('ShiftPage — box card actions', () => {
   it('Завершить moves the booking to ready and bumps the day counter', async () => {
     setBoard([washing], [row({ id: 'w1', status: 'washing' })]);
     renderPage();
-    expect(await screen.findByText('Помыто сегодня: 0')).toBeInTheDocument();
+    expect((await screen.findByText('вымыто сегодня')).previousElementSibling).toHaveTextContent('0');
 
     fireEvent.click(await screen.findByRole('button', { name: 'Завершить' }));
     await waitFor(() => expect(updateBookingStatus).toHaveBeenCalledWith('w1', 'ready'));
-    expect(await screen.findByText('Помыто сегодня: 1')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('вымыто сегодня').previousElementSibling).toHaveTextContent('1'));
   });
 
   it('Пауза pauses, and Продолжить resumes a paused one', async () => {

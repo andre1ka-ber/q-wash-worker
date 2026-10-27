@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { authStore, useAuth, useIsMobile, color, font, radius, StatusPill, ConfirmDialog } from 'q-wash-shared';
-import { useClock, formatClock, formatDayLabel } from '../useClock';
+import { authStore, useAuth, useIsMobile, color, radius, ConfirmDialog } from 'q-wash-shared';
+import { useClock, formatClock } from '../useClock';
 import { useMyWashingPoint } from '../useMyWashingPoint';
 
 export interface HeaderProps {
@@ -13,7 +13,6 @@ export function Header({ completedCount }: HeaderProps) {
   const masterName = user?.name ?? 'Мастер';
   const pointQuery = useMyWashingPoint();
   const pointName = pointQuery.data?.name ?? '…';
-  const pointAddress = pointQuery.data?.address ?? '';
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
 
   const isMobile = useIsMobile();
@@ -85,58 +84,50 @@ export function Header({ completedCount }: HeaderProps) {
     );
   }
 
+  const stat = (value: string | number, label: string, valueColor: string) => (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+      <div style={{ color: valueColor, fontSize: 18, fontWeight: 800 }}>{value}</div>
+      <div style={{ color: color.textTertiary, fontSize: 12 }}>{label}</div>
+    </div>
+  );
+
   return (
     <>
       <div
         style={{
-          padding: '20px 32px',
+          height: 78,
+          flex: '0 0 78px',
+          boxSizing: 'border-box',
+          padding: '0 28px',
+          background: color.surfaceAlt,
           borderBottom: `1px solid ${color.borderAlt}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           gap: 20,
-          flexWrap: 'wrap',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
-          <div style={{ minWidth: 0 }}>
-            <div
-              style={{
-                fontFamily: font.display,
-                color: color.textPrimary,
-                fontSize: 18,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              {pointName}
-            </div>
-            <div style={{ color: color.textFaint, fontSize: 12 }}>{pointAddress}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, minWidth: 0 }}>
+          <div
+            style={{
+              color: color.textPrimary,
+              fontSize: 18,
+              fontWeight: 700,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            Смена · {pointName}
+          </div>
+          <div style={{ color: color.textTertiary, fontSize: 13 }}>
+            Мастер: {masterName} · {shortDate}
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20, flex: '0 0 auto' }}>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ color: color.textPrimaryAlt, fontSize: 14, fontWeight: 600 }}>{masterName}</div>
-            <div style={{ color: color.textFaint, fontSize: 12, textTransform: 'capitalize' }}>
-              {formatDayLabel(now)}
-            </div>
-          </div>
-
-          <div
-            style={{
-              fontFamily: font.display,
-              color: color.textPrimary,
-              fontSize: 20,
-              minWidth: 92,
-              textAlign: 'center',
-            }}
-          >
-            {formatClock(now)}
-          </div>
-
-          <StatusPill kind="ok">Помыто сегодня: {completedCount}</StatusPill>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 22, flex: '0 0 auto' }}>
+          {stat(formatClock(now), 'текущее время', color.textPrimary)}
+          {stat(completedCount, 'вымыто сегодня', color.ok)}
 
           <div
             onClick={() => setLogoutConfirmOpen(true)}

@@ -279,7 +279,7 @@ export function ShiftPage() {
       <div
         style={{
           flex: 1,
-          padding: isMobile ? '18px 18px 30px' : '28px 32px',
+          padding: isMobile ? '18px 18px 30px' : '24px 28px 30px',
           display: 'flex',
           flexDirection: 'column',
           gap: isMobile ? 16 : 20,
@@ -385,7 +385,7 @@ export function ShiftPage() {
                   )}
                 </div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 16 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: 18 }}>
                   {boxes.map((box) => (
                     <BoxCard
                       key={box.number}

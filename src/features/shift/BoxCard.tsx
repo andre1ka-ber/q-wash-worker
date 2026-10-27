@@ -264,17 +264,18 @@ function DesktopBoxCard({ box, now, startPendingId, actionPendingId, onStart, on
   return (
     <div
       style={{
-        borderRadius: radius.xxxl,
+        borderRadius: 22,
         background: color.panel,
         border: `1px solid ${color.border}`,
-        padding: 20,
+        padding: 24,
         display: 'flex',
         flexDirection: 'column',
-        gap: 14,
+        gap: 20,
+        minHeight: 340,
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ fontFamily: font.display, color: color.textPrimary, fontSize: 17 }}>
+        <div style={{ color: color.textPrimary, fontSize: 17, fontWeight: 700 }}>
           Бокс {box.number}
           {box.label ? ` · ${box.label}` : ''}
         </div>
