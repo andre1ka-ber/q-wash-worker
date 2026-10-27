@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { authStore, useAuth, useIsMobile, color, radius, ConfirmDialog } from 'q-wash-shared';
+import { authStore, useIsMobile, color, radius, ConfirmDialog } from 'q-wash-shared';
 import { useClock, formatClock } from '../useClock';
 import { useMyWashingPoint } from '../useMyWashingPoint';
 
@@ -8,15 +8,12 @@ export interface HeaderProps {
 }
 
 export function Header({ completedCount }: HeaderProps) {
-  const { user } = useAuth();
   const now = useClock();
-  const masterName = user?.name ?? 'Мастер';
   const pointQuery = useMyWashingPoint();
   const pointName = pointQuery.data?.name ?? '…';
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
 
   const isMobile = useIsMobile();
-  const firstName = masterName.split(' ')[0];
   const shortDate = now.toLocaleDateString('ru-RU', { timeZone: 'Asia/Dushanbe', day: 'numeric', month: 'long' });
 
   if (isMobile) {
@@ -33,7 +30,7 @@ export function Header({ completedCount }: HeaderProps) {
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
             <div style={{ color: color.textPrimary, fontSize: 20, fontWeight: 600, letterSpacing: '-.03em' }}>
-              Смена · {firstName}
+              {pointName}
             </div>
             <div
               style={{
@@ -44,7 +41,7 @@ export function Header({ completedCount }: HeaderProps) {
                 textOverflow: 'ellipsis',
               }}
             >
-              {pointName} · {shortDate}
+              {shortDate}
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: '0 0 auto' }}>
@@ -118,10 +115,10 @@ export function Header({ completedCount }: HeaderProps) {
               textOverflow: 'ellipsis',
             }}
           >
-            Смена · {pointName}
+            {pointName}
           </div>
           <div style={{ color: color.textTertiary, fontSize: 13 }}>
-            Мастер: {masterName} · {shortDate}
+            {shortDate}
           </div>
         </div>
 
