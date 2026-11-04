@@ -21,13 +21,13 @@ import {
   type BoardItem,
   type BoardItemStatus,
   type LiveBox,
-  type LiveBoxBooking,
   type QueueDayItem,
 } from 'q-wash-shared';
 import { Header } from '../../shared/layout/Header';
 import { useClock } from '../../shared/useClock';
 import { useMyWashingPointId } from '../../shared/useMyWashingPoint';
 import { BoxCard } from './BoxCard';
+import { OverflowSection } from './OverflowSection';
 
 const QUEUE_COLUMNS = '0.8fr 1.8fr 1.1fr 1fr 1fr';
 
@@ -222,13 +222,13 @@ export function ShiftPage() {
   });
 
   const pauseMutation = useMutation({
-    mutationFn: (booking: LiveBoxBooking) => (booking.paused_at ? resumeBooking(booking.id) : pauseBooking(booking.id)),
+    mutationFn: (booking: { id: string; paused_at?: string | null }) => (booking.paused_at ? resumeBooking(booking.id) : pauseBooking(booking.id)),
     onSuccess: invalidateBoard,
     onError: (err) => setActionError(apiErrorMessage(err)),
   });
 
   const finishMutation = useMutation({
-    mutationFn: (booking: LiveBoxBooking) => updateBookingStatus(booking.id, 'ready'),
+    mutationFn: (booking: { id: string }) => updateBookingStatus(booking.id, 'ready'),
     onSuccess: () => {
       setCompletedCount((c) => c + 1);
       invalidateBoard();
@@ -256,8 +256,12 @@ export function ShiftPage() {
   const boxes = boxesQuery.data?.items ?? [];
   const activeBoxNumber = selectedBoxNumber ?? boxes[0]?.number ?? null;
   const activeBox = boxes.find((b) => b.number === activeBoxNumber) ?? null;
-  const queueRows = (queueQuery.data?.items ?? [])
-    .filter((row) => row.status !== 'washing') // already shown on its box's card
+  const allQueue = queueQuery.data?.items ?? [];
+  // «Вне очереди» clients have no box: they are handled in their own section,
+  // washing ones included (no box card shows them).
+  const overflowRows = allQueue.filter((row) => row.is_overflow);
+  const queueRows = allQueue
+    .filter((row) => !row.is_overflow && row.status !== 'washing') // washing ones are already on their box's card
     .sort((a, b) => a.scheduled_start_at.localeCompare(b.scheduled_start_at));
 
   const startPendingId = startMutation.isPending ? startMutation.variables?.id ?? null : null;
@@ -401,6 +405,21 @@ export function ShiftPage() {
                 </div>
               )}
             </div>
+
+            {hadData && (
+              <OverflowSection
+                rows={overflowRows}
+                details={details}
+                startPendingId={startPendingId}
+                actionPendingId={actionPendingId}
+                confirmingCancelId={confirmingCancelId}
+                cancelPendingId={cancelMutation.isPending ? (cancelMutation.variables ?? null) : null}
+                onStart={(row) => startMutation.mutate({ id: row.id, status: row.status })}
+                onPauseToggle={(row) => pauseMutation.mutate(row)}
+                onFinish={(row) => finishMutation.mutate(row)}
+                onCancel={(row) => requestCancel(row.id)}
+              />
+            )}
 
             <div>
               <div

@@ -475,3 +475,11 @@ See `PLAN.md` for the full plan and build order.
   explicitly). The page reloads when a new version takes over, and re-checks
   hourly and on return to the app — previously an open tab or a resumed phone
   app kept running the old build until a hard refresh. `vite build` verified.
+
+- 2026-11-04 — «Вне очереди» (overflow) section on the shift screen, per the updated `Car Wash Web Apps Mobile.dc.html`. Needs the
+  API with migration 000030. Overflow rows (`is_overflow`, from the today's-queue list) are pulled out of the box queue into a dashed-card
+  section above «Очередь на сегодня» (new `OverflowSection.tsx`): «Начать мойку» (queue→waiting→washing chain), «Снять» (confirm), and
+  for a washing client the photo strip, «Пауза/Продолжить» and «Завершить» — all in place. The design's «В Бокс N» (take into a free
+  box) is intentionally not built (decided with the user: start/finish/photos only). No progress bar/timer for overflow: the API has
+  no wash-start time and the scheduled time is only the expected arrival. `tsc -b`, `oxlint`, `vitest run` (39/39), `vite build` clean;
+  not checked in a browser.

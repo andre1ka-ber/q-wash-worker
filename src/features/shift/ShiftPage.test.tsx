@@ -224,3 +224,59 @@ describe('ShiftPage — mobile', () => {
     expect(screen.queryByText('Бокс')).not.toBeInTheDocument(); // no table header on mobile
   });
 });
+
+describe('ShiftPage — Вне очереди', () => {
+  const ov = (over: Partial<BoardItem> = {}) => row({ id: 'x1', box_number: 0, is_overflow: true, car_name: 'X-Trail', customer_phone_last4: '7777', ...over });
+
+  it('lists overflow clients in their own section, not in the box queue', async () => {
+    setBoard([{ number: 1, is_open: true }], [ov()]);
+    renderPage();
+
+    const section = await screen.findByLabelText('Вне очереди');
+    expect(within(section).getByText(/X-Trail/)).toBeInTheDocument();
+    // no box queue row for it, no "Бокс 0"
+    expect(screen.getByText('На сегодня записей больше нет')).toBeInTheDocument();
+    expect(screen.queryByText(/Бокс 0/)).not.toBeInTheDocument();
+  });
+
+  it('hides the section when there are no overflow clients', async () => {
+    renderPage();
+    await screen.findAllByText(/••4567/);
+    expect(screen.queryByLabelText('Вне очереди')).not.toBeInTheDocument();
+  });
+
+  it('starts an overflow client in place (queue -> waiting -> washing), never into a box', async () => {
+    setBoard([{ number: 1, is_open: true }], [ov()]);
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Начать мойку' }));
+
+    await waitFor(() => expect(updateBookingStatus).toHaveBeenCalledTimes(2));
+    expect(updateBookingStatus.mock.calls).toEqual([
+      ['x1', 'waiting'],
+      ['x1', 'washing'],
+    ]);
+    expect(screen.queryByRole('button', { name: /В Бокс/ })).not.toBeInTheDocument();
+  });
+
+  it('a washing overflow client has photos, pause and finish', async () => {
+    setBoard([{ number: 1, is_open: true }], [ov({ status: 'washing' })]);
+    renderPage();
+    const section = await screen.findByLabelText('Вне очереди');
+    expect(within(section).getByLabelText('Добавить фото')).toBeInTheDocument();
+
+    fireEvent.click(within(section).getByRole('button', { name: 'Пауза' }));
+    await waitFor(() => expect(pauseBooking).toHaveBeenCalledWith('x1'));
+    fireEvent.click(within(section).getByRole('button', { name: 'Завершить' }));
+    await waitFor(() => expect(updateBookingStatus).toHaveBeenCalledWith('x1', 'ready'));
+  });
+
+  it('снять asks for confirmation before cancelling', async () => {
+    setBoard([{ number: 1, is_open: true }], [ov({ status: 'waiting' })]);
+    renderPage();
+    const section = await screen.findByLabelText('Вне очереди');
+    fireEvent.click(within(section).getByRole('button', { name: 'Снять' }));
+    expect(cancelBooking).not.toHaveBeenCalled();
+    fireEvent.click(within(section).getByRole('button', { name: 'Точно снять?' }));
+    await waitFor(() => expect(cancelBooking).toHaveBeenCalledWith('x1'));
+  });
+});
